@@ -1,0 +1,68 @@
+function myFunction() {
+  //get the spreadsheet
+  var s = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = s.getSheets()[0];
+
+  //get the folder
+  var file = DriveApp.getFileById(s.getId());
+  var folders = file.getParents();
+  var folderID = -1;
+  while(folders.hasNext())
+  {
+    var temp = folders.next();
+    Logger.log(temp.getName());
+    folderID = temp.getId();
+  }
+  //Check if Daily Log folder has been created
+  var subfolders = DriveApp.getFolderById(folderID).getFolders();
+  var hasFolder = false;
+  var dailyLogFolder;
+  
+  while(subfolders.hasNext())
+  {
+    var tempF = subfolders.next();
+    if(tempF.getName() == "Daily Logs"){
+      hasFolder = true;
+      dailyLogFolder = tempF;
+    }
+  }
+  
+  if(hasFolder){
+    Logger.log("Daily Logs Folder exists");
+  }else{
+    Logger.log("No Daily Logs Folder");
+    //create it
+    dailyLogFolder = DriveApp.getFolderById(folderID).createFolder("Daily Logs");
+  }
+  
+  sheet.sort(2);
+  var data = sheet.getDataRange().getValues();
+  var previousStudent="";
+  var currentStudentFile;
+  //loop through the spreadsheet
+  for (i in data){
+    if(i == 0){continue;}
+    //new student?
+    if(data[i][1] != previousStudent)
+    {
+      Logger.log(data[i][2]);
+      previousStudent = data[i][1];
+      var doc = DocumentApp.create("Daily log summary for " + data[i][1]);
+      
+      var body = doc.getBody();
+      var text = body.editAsText();
+      text.appendText(data[i][0] + "\n" + data[i][2] + "\n" + data[i][4] + "\n" + "Responsibility: " + data[i][5] + "\nOrganization: " + data[i][6] + "\nIndependent Work: " +data[i][7] + "\nCollaboration: " + data[i][8] + "\nInitiative: " + data[i][9] + "\nSelf-regulation: " + data[i][10]);
+      doc.addViewer(data[i][1]);
+      currentStudentFile = DriveApp.getFileById(doc.getId());
+      dailyLogFolder.addFile(currentStudentFile);
+      DriveApp.getRootFolder().removeFile(currentStudentFile);
+      
+    }else{
+      var doc = DocumentApp.openById(currentStudentFile.getId());
+      var body = doc.getBody();
+      var text = body.editAsText();
+      text.appendText("\n" + data[i][0] + "\n" + data[i][4] + "\n" + "Responsibility: " + data[i][5] + "\nOrganization: " + data[i][6] + "\nIndependent Work: " +data[i][7] + "\nCollaboration: " + data[i][8] + "\nInitiative: " + data[i][9] + "\nSelf-regulation: " + data[i][10]);
+
+    }
+  }
+}
